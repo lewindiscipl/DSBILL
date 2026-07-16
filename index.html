@@ -1111,8 +1111,7 @@ function render(){
 
   // NOTES
   if(notes.trim()){
-    h+=`<div class="doc-notes">${notes.replace(/
-/g,'<br>')}</div>`;
+    h+=`<div class="doc-notes">${notes.replace(/\n/g,'<br>')}</div>`;
   }
 
   // FOOTER
