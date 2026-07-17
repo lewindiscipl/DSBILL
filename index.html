@@ -528,18 +528,16 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
         <div class="int-r"><span>Amount Received</span><strong id="i-recd">—</strong></div>
         <div class="int-r"><span>Outstanding</span><strong id="i-bal" style="color:var(--red)">—</strong></div>
         <div class="int-r"><span>Payment Status</span><strong id="i-pst">—</strong></div>
-        <div class="int-r int-sep"><span>Gym Share (20%)</span><strong id="i-gym">₹0</strong></div>
-        <div class="int-r"><span>No. of Gyms</span><strong id="i-ngym">0</strong></div>
-        <div class="int-r"><span>Revenue / Gym</span><strong id="i-pgym">—</strong></div>
-        <div class="int-r"><span>Net to DISCIPL</span><strong id="i-net">₹0</strong></div>
-        <div class="int-r"><span>Investor Share (50%)</span><strong id="i-inv">₹0</strong></div>
-        <div class="int-r hi"><span>DISCIPL Share (50%)</span><strong id="i-ds">₹0</strong></div>
+        <div class="int-r int-sep"><span>No. of Gyms</span><strong id="i-ngym">0</strong></div>
+        <div class="int-r"><span>Gym Revenue Share (20%)</span><strong id="i-gym">&#8377;0</strong></div>
+        <div class="int-r"><span>Revenue / Gym</span><strong id="i-pgym">&#x2014;</strong></div>
+        <div class="int-r hi"><span>Net Profit (after gym share)</span><strong id="i-net">&#8377;0</strong></div>
       </div>
     </div>
 
     <div class="btn-bar">
       <button class="btn btn-black" onclick="saveDoc()">💾 Save Document</button>
-      <button class="btn btn-red" onclick="window.print()">↓ Print / Download PDF</button>
+      <button class="btn btn-red" onclick="printDoc()">↓ Print / Download PDF</button>
       <div class="btn-row3">
         <button class="btn btn-out" onclick="resetForm()">Reset</button>
         <button class="btn btn-out" onclick="duplicateDoc()">Duplicate</button>
@@ -551,7 +549,7 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
   <div class="preview-area">
     <div class="preview-bar">
       <span class="pb-label">Live Preview — A4</span>
-      <button class="pb-btn primary" onclick="window.print()">Print / PDF</button>
+      <button class="pb-btn primary" onclick="printDoc()">Print / PDF</button>
     </div>
     <div class="a4" id="docPreview"></div>
   </div>
@@ -861,12 +859,10 @@ function calcAndRender(){
   document.getElementById('i-recd').textContent=docType==='quotation'?`${fmt(re)} (paid inst.)`:fmt(re);
   document.getElementById('i-bal').textContent=docType==='quotation'?'—':fmt(ba);
   document.getElementById('i-pst').textContent=ps;
-  document.getElementById('i-gym').textContent=fmt(gymSh);
   document.getElementById('i-ngym').textContent=n;
+  document.getElementById('i-gym').textContent=fmt(gymSh);
   document.getElementById('i-pgym').textContent=n>0?fmt(perGym):'—';
   document.getElementById('i-net').textContent=fmt(net);
-  document.getElementById('i-inv').textContent=fmt(net*.5);
-  document.getElementById('i-ds').textContent=fmt(net*.5);
 
   // sync install amounts
   const t=g('payTerms');
@@ -1359,6 +1355,25 @@ function buildLocGrid(){
     <label class="loc-item">
       <input type="checkbox" value="${l}" onchange="onLocChange()"> ${l}
     </label>`).join('');
+}
+
+
+// ══════════════════════════════════════
+// PRINT WITH SMART FILENAME
+// ══════════════════════════════════════
+function printDoc(){
+  const type  = docType==='quotation'?'Quotation':docType==='invoice'?'Invoice':'Receipt';
+  const num   = document.getElementById('mainNum').value || '';
+  const client= (document.getElementById('clientName').value || 'Client').trim();
+  // Sanitise client name for use as filename (remove special chars)
+  const safeName = client.replace(/[^a-zA-Z0-9\s\-]/g,'').trim();
+  // Build filename: e.g. "Invoice - INV-0003 - Meitra Hospital"
+  const filename = `${type} - ${num} - ${safeName}`;
+  const prevTitle = document.title;
+  document.title = filename;
+  window.print();
+  // Restore title after print dialog closes
+  setTimeout(()=>{ document.title = prevTitle; }, 1000);
 }
 
 window.onload = async ()=>{
