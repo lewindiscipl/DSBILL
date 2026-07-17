@@ -224,6 +224,10 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
 .qt-client-sub{font-size:10px;color:var(--g600);line-height:1.5;}
 .qt-right{text-align:right;}
 .qt-right .mi{margin-bottom:4px;}
+.qt-meta-grid{display:flex;flex-direction:column;gap:3px;}
+.qt-mg-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;}
+.qt-mg-row .ml{font-size:7px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--g400);white-space:nowrap;}
+.qt-mg-row .mv{font-size:10.5px;font-weight:600;color:var(--black);text-align:right;}
 .qt-right .ml{font-size:7px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--g400);display:block;}
 .qt-right .mv{font-size:10.5px;font-weight:600;color:var(--black);}
 .qt-locs{font-size:10.5px;color:var(--black);line-height:1.6;margin-bottom:10px;}
@@ -486,6 +490,24 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
         <div class="price-flow" id="priceFlow"></div>
       </div>
 
+      <!-- Creative Fee -->
+      <div class="sec">
+        <div class="sec-lbl">Creative Fee <small style="color:var(--g400);font-weight:400;text-transform:none;letter-spacing:0;">(optional)</small></div>
+        <div class="f">
+          <label>
+            <input type="checkbox" id="creativeEnabled" onchange="onCreativeToggle()" style="width:auto;margin-right:6px;accent-color:var(--red);">
+            Client needs ad creative design
+          </label>
+        </div>
+        <div id="creativeWrap" style="display:none;">
+          <div class="r2">
+            <div class="f"><label>Creative Fee (₹)</label><input type="number" id="creativeFee" value="0" oninput="calcAndRender()"></div>
+            <div class="f"><label>No. of Creatives</label><input type="number" id="creativeCount" value="1" min="1" oninput="render()"></div>
+          </div>
+          <div class="f"><label>Creative Notes <small style="color:var(--g400)">(opt)</small></label><input type="text" id="creativeNotes" placeholder="e.g. Static image + 15s video" oninput="render()"></div>
+        </div>
+      </div>
+
       <!-- Payment Schedule -->
       <div class="sec">
         <div class="sec-lbl">Payment Schedule</div>
@@ -708,14 +730,22 @@ const g  = id => { const e=document.getElementById(id); return e?e.value:''; };
 const sv = (id,v)=>{ const e=document.getElementById(id); if(e) e.value=v; };
 const gross = ()=> (+g('screens'))*(+g('duration'))*(+g('rate'));
 const disc  = ()=> +g('discount')||0;
-const final_= ()=> Math.max(0, gross()-disc());
+const final_= ()=> Math.max(0, gross()-disc()); // base without creative
 const recd  = ()=>{
   if(docType==='quotation') return installments.filter(i=>i.paid).reduce((a,i)=>a+(+i.amount||0),0);
   if(docType==='receipt')   return payMethods.reduce((a,p)=>a+(+p.amount||0),0);
   const fromInst = installments.filter(i=>i.paid).reduce((a,i)=>a+(+i.amount||0),0);
   return Math.max(fromInst, +g('amtReceived')||0);
 };
-const bal   = ()=> Math.max(0, final_()-recd());
+const bal   = ()=> Math.max(0, finalWithCreative()-recd());
+const creativeFee_ = ()=> document.getElementById('creativeEnabled')?.checked ? (+g('creativeFee')||0) : 0;
+const finalWithCreative = ()=> Math.max(0, gross()-disc()) + creativeFee_();
+
+function onCreativeToggle(){
+  const en = document.getElementById('creativeEnabled').checked;
+  document.getElementById('creativeWrap').style.display = en?'block':'none';
+  calcAndRender();
+}
 const selLocs = ()=> Array.from(document.querySelectorAll('#locGrid input:checked')).map(c=>c.value);
 
 function fmt(n){ return '₹'+Math.round(n).toLocaleString('en-IN'); }
@@ -839,13 +869,14 @@ function renderPMs(){
 
 // ── CALCULATIONS ──
 function calcAndRender(){
-  const gr=gross(),di=disc(),fi=final_(),re=recd(),ba=bal();
+  const gr=gross(),di=disc(),cf=creativeFee_(),fi=finalWithCreative(),re=recd(),ba=bal();
   const locs=selLocs(),n=locs.length;
-  const gymSh=fi*.2,perGym=n>0?gymSh/n:0,net=fi-gymSh;
+  const campVal=Math.max(0,gr-di),gymSh=campVal*.2,perGym=n>0?gymSh/n:0,net=fi-gymSh;
 
   let pf=`<div class="pf-row"><span>Campaign Value</span><span>${fmt(gr)}</span></div>`;
   if(di>0) pf+=`<div class="pf-row pf-disc"><span>Discount</span><span>−${fmt(di)}</span></div>`;
-  pf+=`<div class="pf-row pf-main"><span>Final Amount</span><span>${fmt(fi)}</span></div>`;
+  if(cf>0) pf+=`<div class="pf-row" style="color:var(--blue)"><span>Creative Fee</span><span>+${fmt(cf)}</span></div>`;
+  pf+=`<div class="pf-row pf-main"><span>Total Amount</span><span>${fmt(fi)}</span></div>`;
   if(docType!=='quotation'){
     pf+=`<div class="pf-row"><span>Amount Received</span><span>${fmt(re)}</span></div>`;
     pf+=`<div class="pf-row pf-bal"><span>Outstanding</span><span>${fmt(ba)}</span></div>`;
@@ -856,8 +887,8 @@ function calcAndRender(){
   document.getElementById('i-gross').textContent=fmt(gr);
   document.getElementById('i-disc').textContent=di>0?`−${fmt(di)}`:'—';
   document.getElementById('i-final').textContent=fmt(fi);
-  document.getElementById('i-recd').textContent=docType==='quotation'?`${fmt(re)} (paid inst.)`:fmt(re);
-  document.getElementById('i-bal').textContent=docType==='quotation'?'—':fmt(ba);
+  document.getElementById('i-recd').textContent=fmt(re);
+  document.getElementById('i-bal').textContent=fmt(ba);
   document.getElementById('i-pst').textContent=ps;
   document.getElementById('i-ngym').textContent=n;
   document.getElementById('i-gym').textContent=fmt(gymSh);
@@ -886,6 +917,8 @@ function render(){
   const cem=g('clientEmail'), cad=g('clientAddress'), cgs=g('clientGstin');
   const dd=g('docDate'), dd2=g('docDate2'), sd=g('startDate'), ed=g('endDate');
   const notes=g('notes'), mn=g('mainNum'), campn=g('campNum'), invRef=g('invoiceRef');
+  const creativeOn=document.getElementById('creativeEnabled')?.checked;
+  const cFee=+g('creativeFee')||0, cCount=+g('creativeCount')||1, cNotes=g('creativeNotes');
   const screens=+g('screens'), dur=+g('duration'), rate_=+g('rate');
 
   const ps=re>=fi&&fi>0?'paid':re>0?'partial':'unpaid';
@@ -908,15 +941,17 @@ function render(){
           ${cp?cp+'<br>':''}
           ${cph?'Phone: '+cph:''}${cem&&cph?' &nbsp;|&nbsp; ':''}${cem?'Email: '+cem:''}
           ${cad?'<br>'+cad:''}
-          ${cgs?'<br>GSTIN: '+cgs:''}
+          ${cgs?'<br>Client GSTIN: '+cgs:''}
         </div>
       </div>
       <div class="qt-right">
-        <div class="mi"><span class="ml">QUOTATION NO</span><span class="mv">${mn||'—'}</span></div>
-        <div class="mi"><span class="ml">CAMPAIGN ID</span><span class="mv">${campn||'—'}</span></div>
-        <div class="mi"><span class="ml">DATE</span><span class="mv">${fmtDate(dd)}</span></div>
-        ${dd2?`<div class="mi"><span class="ml">VALID UNTIL</span><span class="mv">${fmtDate(dd2)}</span></div>`:''}
-        ${CO.gstin?`<div class="mi"><span class="ml">OUR GSTIN</span><span class="mv">${CO.gstin}</span></div>`:''}
+        <div class="qt-meta-grid">
+          <div class="qt-mg-row"><span class="ml">QUOTATION NO</span><span class="mv">${mn||'—'}</span></div>
+          <div class="qt-mg-row"><span class="ml">CAMPAIGN ID</span><span class="mv">${campn||'—'}</span></div>
+          <div class="qt-mg-row"><span class="ml">DATE</span><span class="mv">${fmtDate(dd)}</span></div>
+          ${dd2?`<div class="qt-mg-row"><span class="ml">VALID UNTIL</span><span class="mv">${fmtDate(dd2)}</span></div>`:''}
+          ${CO.gstin?`<div class="qt-mg-row"><span class="ml">GSTIN</span><span class="mv">${CO.gstin}</span></div>`:''}
+        </div>
       </div>
     </div>`;
 
@@ -933,10 +968,12 @@ function render(){
 
     h+=`<div class="doc-sec-lbl">Pricing</div>
     <div class="qt-pricing">
-      <div class="qp-row"><span>Campaign Value</span><span>${fmt(gr)}</span></div>
+      <div class="qp-row"><span>Campaign Value (${screens} screen${screens>1?'s':''} × ${dur} month${dur>1?'s':''} × ₹${rate_.toLocaleString('en-IN')})</span><span>${fmt(gr)}</span></div>
       ${di>0?`<div class="qp-row qp-disc"><span>Discount</span><span>−${fmt(di)}</span></div>`:''}
-      <div class="qp-row qp-total"><span>Total Campaign Value</span><span>${fmt(fi)}</span></div>
-    </div>`;
+      ${creativeOn&&cFee>0?`<div class="qp-row" style="color:var(--blue);"><span>Creative Design Fee${cCount>1?' ('+cCount+' creatives)':''}</span><span>+${fmt(cFee)}</span></div>`:''}
+      <div class="qp-row qp-total"><span>Total ${creativeOn&&cFee>0?'(Campaign + Creative)':'Campaign Value'}</span><span>${fmt(fi)}</span></div>
+    </div>
+    ${creativeOn&&cNotes?`<div style="font-size:9.5px;color:var(--g600);margin-top:4px;padding:5px 8px;background:var(--g50);border-left:2px solid #1d4ed8;">Creative: ${cNotes}</div>`:''}`;
 
     if(installments.length){
       h+=`<div class="doc-sec-lbl">Payment Schedule</div>
@@ -946,7 +983,7 @@ function render(){
         const badge=ins.paid?`<span class="sched-paid">PAID</span>`:`<span class="sched-pend">PENDING</span>`;
         h+=`<tr ${ins.paid?'style="background:#f0fdf4"':''}><td>${ins.desc||'—'}</td><td>${ins.due||'—'}</td><td class="ra">${fmt(ins.amount||0)}</td><td style="text-align:center">${badge}</td></tr>`;
       });
-      h+=`<tr class="tot"><td colspan="3">Total</td><td style="text-align:center;font-size:8px;color:var(--green);">${fmt(installments.reduce((a,i)=>a+(+i.amount||0),0))}</td></tr>
+      h+=`<tr class="tot"><td colspan="2">Total</td><td class="ra">${fmt(installments.reduce((a,i)=>a+(+i.amount||0),0))}</td><td></td></tr>
       </table>`;
     }
 
@@ -1024,7 +1061,8 @@ function render(){
       <div class="idb-lbl">Pricing Summary</div>
       <div class="idb-row"><span>Campaign Value</span><span>${fmt(gr)}</span></div>
       ${di>0?`<div class="idb-row" style="color:var(--green)"><span>Discount</span><span>−${fmt(di)}</span></div>`:''}
-      <div class="idb-row total"><span>Final Amount</span><span>${fmt(fi)}</span></div>
+      ${creativeOn&&cFee>0?`<div class="idb-row" style="color:var(--blue)"><span>Creative Fee</span><span>+${fmt(cFee)}</span></div>`:''}
+      <div class="idb-row total"><span>Total Amount</span><span>${fmt(fi)}</span></div>
       ${re>0?`<div class="idb-row" style="color:var(--green)"><span>Amount Paid</span><span>−${fmt(re)}</span></div>`:''}
       <div class="idb-row total"><span>Balance Due</span><span style="color:var(--red)">${fmt(ba)}</span></div>
     </div>`;
@@ -1155,6 +1193,7 @@ function buildRecord(){
     payMethods:[...payMethods], notes:g('notes'),
     docDate:g('docDate'), docDate2:g('docDate2'),
     gross:gross(), final:fi, recd:re, bal:ba, payStatus:ps,
+    creativeOn:document.getElementById('creativeEnabled')?.checked||false, creativeFee:+g('creativeFee')||0, creativeCount:+g('creativeCount')||1, creativeNotes:g('creativeNotes'),
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   };
 }
@@ -1190,6 +1229,11 @@ function loadDoc(rec){
   sv('amtReceived',rec.amtReceived||0);
   sv('payTerms',rec.payTerms||'full');
   sv('notes',rec.notes||'');
+  const cEl=document.getElementById('creativeEnabled');
+  if(cEl){ cEl.checked=rec.creativeOn||false; onCreativeToggle(); }
+  sv('creativeFee',rec.creativeFee||0);
+  sv('creativeCount',rec.creativeCount||1);
+  sv('creativeNotes',rec.creativeNotes||'');
   sv('docDate',rec.docDate); sv('docDate2',rec.docDate2||'');
   document.querySelectorAll('#locGrid input').forEach(c=>{c.checked=(rec.locs||[]).includes(c.value);});
   installments=rec.installments?[...rec.installments]:[];
@@ -1328,6 +1372,9 @@ function resetForm(){
    'clientGstin','notes','startDate','endDate','invoiceRef'].forEach(id=>sv(id,''));
   sv('screens',1); sv('duration',1); sv('rate',2500); sv('discount',0); sv('amtReceived',0);
   sv('campStatus','Draft'); sv('payTerms','full');
+  const cel=document.getElementById('creativeEnabled'); if(cel) cel.checked=false;
+  sv('creativeFee',0); sv('creativeCount',1); sv('creativeNotes','');
+  const cw=document.getElementById('creativeWrap'); if(cw) cw.style.display='none';
   document.querySelectorAll('#locGrid input').forEach(c=>c.checked=false);
   payMethods=[]; installments=[];
   const today=new Date().toISOString().split('T')[0]; sv('docDate',today);
