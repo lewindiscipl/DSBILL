@@ -625,6 +625,7 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
         <div class="sf"><label>Email</label><input id="s-email" type="text"></div>
       </div>
       <div class="sf" style="margin-top:10px;"><label>Website</label><input id="s-website" type="text"></div>
+      <div class="sf" style="margin-top:10px;"><label>Authorized Signatory Name</label><input id="s-signatory" type="text" placeholder="e.g. Rahul Menon"></div>
     </div>
     <div class="settings-card">
       <h3>Tax &amp; Registration</h3>
@@ -638,12 +639,13 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
       <h3>Bank Details</h3>
       <div class="s-grid">
         <div class="sf"><label>Bank Name</label><input id="s-bank" type="text"></div>
-        <div class="sf"><label>Account Number</label><input id="s-accno" type="text"></div>
+        <div class="sf"><label>Account Name</label><input id="s-accname" type="text"></div>
       </div>
       <div class="s-grid" style="margin-top:10px;">
+        <div class="sf"><label>Account Number</label><input id="s-accno" type="text"></div>
         <div class="sf"><label>IFSC Code</label><input id="s-ifsc" type="text"></div>
-        <div class="sf"><label>UPI ID</label><input id="s-upi" type="text"></div>
       </div>
+      <div class="sf" style="margin-top:10px;"><label>UPI ID</label><input id="s-upi" type="text"></div>
     </div>
     <button class="save-btn" onclick="saveSettings()">Save Settings</button>
   </div>
@@ -665,7 +667,8 @@ const DEF_CO = {
   brand:"DISCIPL Screens",legal:"HABITOZ PRIVATE LIMITED",
   phone:"+91 97464 88282",email:"info@thediscipl.com",
   website:"thediscipl.com",address:"Calicut, Kerala",
-  gstin:"",pan:"",cin:"",bankName:"",accountNumber:"",ifsc:"",upiId:""
+  gstin:"",pan:"",cin:"",bankName:"",accountName:"",accountNumber:"",ifsc:"",upiId:"",
+  signatory:""
 };
 
 let CO   = {...DEF_CO};
@@ -1072,6 +1075,18 @@ function render(){
       </table>`;
     }
 
+    if(SECTIONS.payDetails&&(CO.bankName||CO.accountNumber||CO.upiId)){
+      h+=`<div class="doc-sec-lbl">Payment Details</div>
+      <div style="background:var(--g50);border:1px solid var(--g200);padding:9px 12px;">
+      <div class="bank-grid">
+        ${CO.bankName?`<div class="bg-item"><span>Bank</span>${CO.bankName}</div>`:''}
+        ${CO.accountName?`<div class="bg-item"><span>Account Name</span>${CO.accountName}</div>`:''}
+        ${CO.accountNumber?`<div class="bg-item"><span>Account</span>${CO.accountNumber}</div>`:''}
+        ${CO.ifsc?`<div class="bg-item"><span>IFSC</span>${CO.ifsc}</div>`:''}
+        ${CO.upiId?`<div class="bg-item"><span>UPI ID</span>${CO.upiId}</div>`:''}
+      </div></div>`;
+    }
+
     if(SECTIONS.why){
       h+=`<div class="doc-sec-lbl">Why DISCIPL Screens?</div>
       <div class="why-grid">${WHY.map(w=>`<div class="why-row"><span class="why-chk">✔</span>${w}</div>`).join('')}</div>`;
@@ -1175,6 +1190,7 @@ function render(){
       <div style="background:var(--g50);border:1px solid var(--g200);padding:9px 12px;">
       <div class="bank-grid">
         ${CO.bankName?`<div class="bg-item"><span>Bank</span>${CO.bankName}</div>`:''}
+        ${CO.accountName?`<div class="bg-item"><span>Account Name</span>${CO.accountName}</div>`:''}
         ${CO.accountNumber?`<div class="bg-item"><span>Account</span>${CO.accountNumber}</div>`:''}
         ${CO.ifsc?`<div class="bg-item"><span>IFSC</span>${CO.ifsc}</div>`:''}
         ${CO.upiId?`<div class="bg-item"><span>UPI ID</span>${CO.upiId}</div>`:''}
@@ -1234,6 +1250,7 @@ function render(){
       h+=`<div class="doc-sec-lbl">Our Payment Details</div>
       <div class="bank-grid" style="background:var(--g50);border:1px solid var(--g200);padding:8px 12px;">
         ${CO.bankName?`<div class="bg-item"><span>Bank</span>${CO.bankName}</div>`:''}
+        ${CO.accountName?`<div class="bg-item"><span>Account Name</span>${CO.accountName}</div>`:''}
         ${CO.accountNumber?`<div class="bg-item"><span>Account</span>${CO.accountNumber}</div>`:''}
         ${CO.ifsc?`<div class="bg-item"><span>IFSC</span>${CO.ifsc}</div>`:''}
         ${CO.upiId?`<div class="bg-item"><span>UPI ID</span>${CO.upiId}</div>`:''}
@@ -1257,7 +1274,7 @@ function render(){
     ${SECTIONS.signatory?`<div>
       <div class="sig-space"></div>
       <div class="sig-line"></div>
-      <div class="sig-lbl">Authorized Signatory<br>For ${CO.legal}</div>
+      <div class="sig-lbl">${CO.signatory?CO.signatory+'<br>':''}Authorized Signatory<br>For ${CO.legal}</div>
     </div>`:''}
   </div>`;
 
@@ -1443,8 +1460,10 @@ function loadSettingsUI(){
   sv('s-brand',CO.brand||''); sv('s-legal',CO.legal||'');
   sv('s-address',CO.address||''); sv('s-phone',CO.phone||'');
   sv('s-email',CO.email||''); sv('s-website',CO.website||'');
+  sv('s-signatory',CO.signatory||'');
   sv('s-gstin',CO.gstin||''); sv('s-pan',CO.pan||'');
   sv('s-cin',CO.cin||''); sv('s-bank',CO.bankName||'');
+  sv('s-accname',CO.accountName||'');
   sv('s-accno',CO.accountNumber||''); sv('s-ifsc',CO.ifsc||'');
   sv('s-upi',CO.upiId||'');
 }
@@ -1452,8 +1471,9 @@ async function saveSettings(){
   CO={
     brand:g('s-brand'),legal:g('s-legal'),address:g('s-address'),
     phone:g('s-phone'),email:g('s-email'),website:g('s-website'),
+    signatory:g('s-signatory'),
     gstin:g('s-gstin'),pan:g('s-pan'),cin:g('s-cin'),
-    bankName:g('s-bank'),accountNumber:g('s-accno'),
+    bankName:g('s-bank'),accountName:g('s-accname'),accountNumber:g('s-accno'),
     ifsc:g('s-ifsc'),upiId:g('s-upi')
   };
   saveLocal();
