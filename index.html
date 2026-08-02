@@ -673,11 +673,11 @@ let DOCS = [];   // all saved documents
 let CTR  = {quotation:1,invoice:1,receipt:1,campaign:1};
 
 const LOCS = [
-  "Revive Fitness Centre","Wellness Gym","Titan Fitness","Greens Fitness",
-  "Detox Fitness","Fitpro Fitness","FitFat Studio","Primal Fitness",
-  "iFitness Gym","Core Fitness","Alpha Fitness – Nanminda",
-  "Alpha Fitness – Chelannur","Alpha Fitness – Atholi",
-  "New World Ladies Gym","New World Gym"
+  "FitFat Studio – Thondayad","Fitpro Fitness – Eranhipalam","Greens Fitness – Mankavu",
+  "Core Fitness – Cherooty Rd","Alpha Fitness – Nanminda","Alpha Fitness – Chelannur",
+  "Alpha Fitness – Atholi","Detox Fitness – Kovoor","Primal Fitness – Palazhi",
+  "Wellness Gym – Medical College","iFitness Gym – Palazhi","Revive Fitness Centre – Medical College",
+  "Titan Fitness – Mankavu","New World Gym – Mukkam","New World Ladies Gym – Mukkam"
 ];
 const INCLUSIONS = [
   "Image & Video advertisements supported.",
@@ -1043,8 +1043,8 @@ function render(){
       h+=`<div class="qt-stats">
         <div class="qt-stat"><div class="qsv">${screens}</div><div class="qsl">Screens</div></div>
         <div class="qt-stat"><div class="qsv">${dur}</div><div class="qsl">Months</div></div>
-        ${sd?`<div class="qt-stat"><div class="qsv" style="font-size:12px;padding-top:5px;">${fmtDate(sd)}</div><div class="qsl">Start Date</div></div>`:''}
-        ${ed?`<div class="qt-stat"><div class="qsv" style="font-size:12px;padding-top:5px;">${fmtDate(ed)}</div><div class="qsl">End Date</div></div>`:''}
+        <div class="qt-stat"><div class="qsv" style="font-size:15px;"><span class="sym">₹</span>${rate_.toLocaleString('en-IN')}</div><div class="qsl">Per Screen / Month</div></div>
+        <div class="qt-stat"><div class="qsv" style="font-size:15px;"><span class="sym">₹</span>${gr.toLocaleString('en-IN')}</div><div class="qsl">Total Campaign Value</div></div>
       </div>`;
     }
 
