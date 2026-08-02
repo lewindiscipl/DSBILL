@@ -445,6 +445,20 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
         </div>
       </div>
 
+      <!-- Section Visibility -->
+      <div class="sec">
+        <div class="sec-lbl">Document Sections</div>
+        <div class="f" style="display:grid;gap:4px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-campSummary" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Campaign Summary</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-paySchedule" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Payment Schedule</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-payDetails" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Payment Details (Bank/UPI)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-why" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Why DISCIPL Screens</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-inclusions" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Inclusions</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-terms" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Terms & Conditions</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-signatory" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Authorized Signatory</label>
+        </div>
+      </div>
+
       <!-- Client -->
       <div class="sec">
         <div class="sec-lbl">Client</div>
@@ -483,18 +497,27 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
           <div class="f"><label>Rate / Screen / Month (₹)</label><input type="number" id="rate" value="2500" oninput="calcAndRender()"></div>
           <div class="f"><label>Discount (₹)</label><input type="number" id="discount" value="0" oninput="calcAndRender()"></div>
         </div>
-        <div class="r2" style="margin-top:6px;align-items:end;">
-          <div class="f">
-            <label>
-              <input type="checkbox" id="gstEnabled" checked onchange="calcAndRender()" style="width:auto;margin-right:6px;accent-color:var(--red);">
-              Apply GST
-            </label>
-          </div>
-          <div class="f"><label>GST Rate (%)</label><input type="number" id="gstRate" value="18" step="0.1" min="0" oninput="calcAndRender()"></div>
-        </div>
         <div class="f" id="amtRecvWrap" style="display:none;">
           <label>Amount Received (₹)</label>
           <input type="number" id="amtReceived" value="0" oninput="calcAndRender()">
+        </div>
+        <div class="f">
+          <label>
+            <input type="checkbox" id="gstEnabled" onchange="onGstToggle()" style="width:auto;margin-right:6px;accent-color:var(--red);">
+            Apply GST
+          </label>
+        </div>
+        <div id="gstWrap" style="display:none;">
+          <div class="r2">
+            <div class="f">
+              <label>GST Type</label>
+              <select id="gstType" onchange="calcAndRender()">
+                <option value="intra">Intra-state (CGST+SGST)</option>
+                <option value="inter">Inter-state (IGST)</option>
+              </select>
+            </div>
+            <div class="f"><label>GST Rate (%)</label><input type="number" id="gstRate" value="18" oninput="calcAndRender()"></div>
+          </div>
         </div>
         <div class="price-flow" id="priceFlow"></div>
       </div>
@@ -609,11 +632,7 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
         <div class="sf"><label>GSTIN</label><input id="s-gstin" type="text"></div>
         <div class="sf"><label>PAN (Optional)</label><input id="s-pan" type="text"></div>
       </div>
-      <div class="s-grid" style="margin-top:10px;">
-        <div class="sf"><label>CIN (Optional)</label><input id="s-cin" type="text"></div>
-        <div class="sf"><label>Default GST Rate (%)</label><input id="s-gstrate" type="number" step="0.1" min="0" placeholder="18"></div>
-      </div>
-      <div class="sf" style="margin-top:10px;"><label>HSN/SAC Code <small style="color:var(--g400)">(Advertising services)</small></label><input id="s-sac" type="text" placeholder="998365"></div>
+      <div class="sf" style="margin-top:10px;"><label>CIN (Optional)</label><input id="s-cin" type="text"></div>
     </div>
     <div class="settings-card">
       <h3>Bank Details</h3>
@@ -646,8 +665,7 @@ const DEF_CO = {
   brand:"DISCIPL Screens",legal:"HABITOZ PRIVATE LIMITED",
   phone:"+91 97464 88282",email:"info@thediscipl.com",
   website:"thediscipl.com",address:"Calicut, Kerala",
-  gstin:"",pan:"",cin:"",bankName:"",accountNumber:"",ifsc:"",upiId:"",
-  gstRate:18,sac:"998365"
+  gstin:"",pan:"",cin:"",bankName:"",accountNumber:"",ifsc:"",upiId:""
 };
 
 let CO   = {...DEF_CO};
@@ -751,51 +769,58 @@ const recd  = ()=>{
   const fromInst = installments.filter(i=>i.paid).reduce((a,i)=>a+(+i.amount||0),0);
   return Math.max(fromInst, +g('amtReceived')||0);
 };
-const bal   = ()=> Math.max(0, grand()-recd());
+const bal   = ()=> Math.max(0, grandTotal()-recd());
 const creativeFee_ = ()=> document.getElementById('creativeEnabled')?.checked ? (+g('creativeFee')||0) : 0;
-const finalWithCreative = ()=> Math.max(0, gross()-disc()) + creativeFee_(); // taxable value (pre-GST)
+const finalWithCreative = ()=> Math.max(0, gross()-disc()) + creativeFee_();
 
 // ── GST ──
-function gstStateCode(gstin){ return gstin && gstin.trim().length>=2 ? gstin.trim().slice(0,2) : ''; }
-function isInterState(){
-  const co=gstStateCode(CO.gstin), cl=gstStateCode(g('clientGstin'));
-  return !!(co && cl && co!==cl);
+const gstOn   = ()=> document.getElementById('gstEnabled')?.checked || false;
+const gstRatePct = ()=> +g('gstRate')||0;
+const taxableValue = ()=> finalWithCreative();
+const gstAmount = ()=> gstOn() ? taxableValue()*gstRatePct()/100 : 0;
+const cgstAmt = ()=> gstOn() && g('gstType')==='intra' ? gstAmount()/2 : 0;
+const sgstAmt = ()=> gstOn() && g('gstType')==='intra' ? gstAmount()/2 : 0;
+const igstAmt = ()=> gstOn() && g('gstType')==='inter' ? gstAmount() : 0;
+const grandTotal = ()=> taxableValue() + gstAmount();
+
+function onGstToggle(){
+  const en = document.getElementById('gstEnabled').checked;
+  document.getElementById('gstWrap').style.display = en?'block':'none';
+  calcAndRender();
 }
-const gstOn    = ()=>{ const e=document.getElementById('gstEnabled'); return e?e.checked:false; };
-const gstPct   = ()=> +g('gstRate')||0;
-const taxable  = ()=> finalWithCreative();
-const gstAmt   = ()=> gstOn() ? taxable()*gstPct()/100 : 0;
-const cgstAmt  = ()=> (gstOn()&&!isInterState()) ? gstAmt()/2 : 0;
-const sgstAmt  = ()=> (gstOn()&&!isInterState()) ? gstAmt()/2 : 0;
-const igstAmt  = ()=> (gstOn()&&isInterState())  ? gstAmt()   : 0;
-const grand    = ()=> taxable() + gstAmt();
 
 function onCreativeToggle(){
   const en = document.getElementById('creativeEnabled').checked;
   document.getElementById('creativeWrap').style.display = en?'block':'none';
   calcAndRender();
 }
+
+// ── SECTION VISIBILITY ──
+let SECTIONS = {campSummary:true,paySchedule:true,payDetails:true,why:true,inclusions:true,terms:true,signatory:true};
+function onSectionToggle(){
+  SECTIONS = {
+    campSummary: document.getElementById('sec-campSummary').checked,
+    paySchedule: document.getElementById('sec-paySchedule').checked,
+    payDetails:  document.getElementById('sec-payDetails').checked,
+    why:         document.getElementById('sec-why').checked,
+    inclusions:  document.getElementById('sec-inclusions').checked,
+    terms:       document.getElementById('sec-terms').checked,
+    signatory:   document.getElementById('sec-signatory').checked
+  };
+  render();
+}
+function applySectionsToUI(){
+  document.getElementById('sec-campSummary').checked = SECTIONS.campSummary;
+  document.getElementById('sec-paySchedule').checked = SECTIONS.paySchedule;
+  document.getElementById('sec-payDetails').checked  = SECTIONS.payDetails;
+  document.getElementById('sec-why').checked         = SECTIONS.why;
+  document.getElementById('sec-inclusions').checked  = SECTIONS.inclusions;
+  document.getElementById('sec-terms').checked       = SECTIONS.terms;
+  document.getElementById('sec-signatory').checked   = SECTIONS.signatory;
+}
 const selLocs = ()=> Array.from(document.querySelectorAll('#locGrid input:checked')).map(c=>c.value);
 
 function fmt(n){ return '₹'+Math.round(n).toLocaleString('en-IN'); }
-function amountInWords(n){
-  n=Math.round(n||0);
-  if(n===0) return 'Rupees Zero Only';
-  const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-  const tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-  function two(x){ return x<20?ones[x]:tens[Math.floor(x/10)]+(x%10?' '+ones[x%10]:''); }
-  function three(x){ return (x>=100?ones[Math.floor(x/100)]+' Hundred'+(x%100?' ':''):'')+(x%100?two(x%100):''); }
-  let parts=[];
-  const crore=Math.floor(n/10000000); n%=10000000;
-  const lakh=Math.floor(n/100000); n%=100000;
-  const thou=Math.floor(n/1000); n%=1000;
-  const hund=n;
-  if(crore) parts.push(three(crore)+' Crore');
-  if(lakh)  parts.push(three(lakh)+' Lakh');
-  if(thou)  parts.push(three(thou)+' Thousand');
-  if(hund)  parts.push(three(hund));
-  return 'Rupees '+parts.join(' ')+' Only';
-}
 function fmtDate(d){
   if(!d) return '—';
   const dt = new Date(d+'T00:00:00');
@@ -916,30 +941,30 @@ function renderPMs(){
 
 // ── CALCULATIONS ──
 function calcAndRender(){
-  const gr=gross(),di=disc(),cf=creativeFee_(),fi=finalWithCreative(),re=recd(),ba=bal();
-  const gst=gstAmt(),gt=grand(),inter=isInterState();
+  const gr=gross(),di=disc(),cf=creativeFee_(),tv=taxableValue(),gAmt=gstAmount(),fi=grandTotal(),re=recd(),ba=bal();
   const locs=selLocs(),n=locs.length;
   const campVal=Math.max(0,gr-di),gymSh=campVal*.2,perGym=n>0?gymSh/n:0,net=fi-gymSh;
 
   let pf=`<div class="pf-row"><span>Campaign Value</span><span>${fmt(gr)}</span></div>`;
   if(di>0) pf+=`<div class="pf-row pf-disc"><span>Discount</span><span>−${fmt(di)}</span></div>`;
   if(cf>0) pf+=`<div class="pf-row" style="color:var(--blue)"><span>Creative Fee</span><span>+${fmt(cf)}</span></div>`;
-  pf+=`<div class="pf-row" style="border-top:1px solid var(--g300);margin-top:3px;padding-top:4px;"><span>Taxable Value</span><span>${fmt(fi)}</span></div>`;
   if(gstOn()){
-    if(inter) pf+=`<div class="pf-row"><span>IGST (${gstPct()}%)</span><span>+${fmt(gst)}</span></div>`;
-    else{
-      pf+=`<div class="pf-row"><span>CGST (${(gstPct()/2)}%)</span><span>+${fmt(gst/2)}</span></div>`;
-      pf+=`<div class="pf-row"><span>SGST (${(gstPct()/2)}%)</span><span>+${fmt(gst/2)}</span></div>`;
+    pf+=`<div class="pf-row"><span>Taxable Value</span><span>${fmt(tv)}</span></div>`;
+    if(g('gstType')==='intra'){
+      pf+=`<div class="pf-row"><span>CGST (${(gstRatePct()/2).toFixed(1)}%)</span><span>+${fmt(cgstAmt())}</span></div>`;
+      pf+=`<div class="pf-row"><span>SGST (${(gstRatePct()/2).toFixed(1)}%)</span><span>+${fmt(sgstAmt())}</span></div>`;
+    } else {
+      pf+=`<div class="pf-row"><span>IGST (${gstRatePct()}%)</span><span>+${fmt(igstAmt())}</span></div>`;
     }
   }
-  pf+=`<div class="pf-row pf-main"><span>Grand Total</span><span>${fmt(gt)}</span></div>`;
+  pf+=`<div class="pf-row pf-main"><span>Total Amount</span><span>${fmt(fi)}</span></div>`;
   if(docType!=='quotation'){
     pf+=`<div class="pf-row"><span>Amount Received</span><span>${fmt(re)}</span></div>`;
     pf+=`<div class="pf-row pf-bal"><span>Outstanding</span><span>${fmt(ba)}</span></div>`;
   }
   document.getElementById('priceFlow').innerHTML=pf;
 
-  const ps=re>=gt&&gt>0?'Paid':re>0?'Partially Paid':'Unpaid';
+  const ps=re>=fi&&fi>0?'Paid':re>0?'Partially Paid':'Unpaid';
   document.getElementById('i-gross').textContent=fmt(gr);
   document.getElementById('i-disc').textContent=di>0?`−${fmt(di)}`:'—';
   document.getElementById('i-final').textContent=fmt(fi);
@@ -951,10 +976,10 @@ function calcAndRender(){
   document.getElementById('i-pgym').textContent=n>0?fmt(perGym):'—';
   document.getElementById('i-net').textContent=fmt(net);
 
-  // sync install amounts (GST-inclusive grand total)
+  // sync install amounts
   const t=g('payTerms');
   if(t!=='custom'&&installments.length){
-    const f=grand();
+    const f=final_();
     if(t==='full'){ installments[0].amount=f; }
     else if(t==='two'){ const h=Math.round(f/2); installments[0].amount=h; if(installments[1]) installments[1].amount=f-h; }
     else if(t==='three'){ const th=Math.round(f/3); installments[0].amount=th; if(installments[1]) installments[1].amount=th; if(installments[2]) installments[2].amount=f-2*th; }
@@ -967,8 +992,8 @@ function calcAndRender(){
 // RENDER DOCUMENT
 // ══════════════════════════════════════
 function render(){
-  const fi=final_(), re=recd(), ba=bal(), gr=gross(), di=disc();
-  const gstEn=gstOn(), gPct=gstPct(), gAmt=gstAmt(), gt=grand(), inter=isInterState();
+  const fi=grandTotal(), re=recd(), ba=bal(), gr=gross(), di=disc();
+  const tv=taxableValue(), gAmt=gstAmount(), gOn=gstOn(), gType=g('gstType');
   const locs=selLocs();
   const cn=g('clientName')||'—', cp=g('contactPerson'), cph=g('clientPhone');
   const cem=g('clientEmail'), cad=g('clientAddress'), cgs=g('clientGstin');
@@ -978,7 +1003,7 @@ function render(){
   const cFee=+g('creativeFee')||0, cCount=+g('creativeCount')||1, cNotes=g('creativeNotes');
   const screens=+g('screens'), dur=+g('duration'), rate_=+g('rate');
 
-  const ps=re>=gt&&gt>0?'paid':re>0?'partial':'unpaid';
+  const ps=re>=fi&&fi>0?'paid':re>0?'partial':'unpaid';
   const psLabel=ps==='paid'?'PAID':ps==='partial'?'PARTIALLY PAID':'UNPAID';
 
   let h='';
@@ -1012,14 +1037,14 @@ function render(){
       </div>
     </div>`;
 
-    if(locs.length||screens||dur){
+    if(SECTIONS.campSummary&&(locs.length||screens||dur)){
       h+=`<div class="doc-sec-lbl">Campaign Details</div>`;
       if(locs.length) h+=`<div class="qt-locs">${locs.map((l,i)=>l+(i<locs.length-1?'<span class="sep">•</span>':'')).join('')}</div>`;
       h+=`<div class="qt-stats">
         <div class="qt-stat"><div class="qsv">${screens}</div><div class="qsl">Screens</div></div>
         <div class="qt-stat"><div class="qsv">${dur}</div><div class="qsl">Months</div></div>
-        <div class="qt-stat"><div class="qsv"><span class="sym">₹</span>${rate_.toLocaleString('en-IN')}</div><div class="qsl">Per Screen / Month</div></div>
-        <div class="qt-stat"><div class="qsv"><span class="sym">₹</span>${Math.round(fi).toLocaleString('en-IN')}</div><div class="qsl">Total Campaign Value</div></div>
+        ${sd?`<div class="qt-stat"><div class="qsv" style="font-size:12px;padding-top:5px;">${fmtDate(sd)}</div><div class="qsl">Start Date</div></div>`:''}
+        ${ed?`<div class="qt-stat"><div class="qsv" style="font-size:12px;padding-top:5px;">${fmtDate(ed)}</div><div class="qsl">End Date</div></div>`:''}
       </div>`;
     }
 
@@ -1028,13 +1053,14 @@ function render(){
       <div class="qp-row"><span>Campaign Value (${screens} screen${screens>1?'s':''} × ${dur} month${dur>1?'s':''} × ₹${rate_.toLocaleString('en-IN')})</span><span>${fmt(gr)}</span></div>
       ${di>0?`<div class="qp-row qp-disc"><span>Discount</span><span>−${fmt(di)}</span></div>`:''}
       ${creativeOn&&cFee>0?`<div class="qp-row" style="color:var(--blue);"><span>Creative Design Fee${cCount>1?' ('+cCount+' creatives)':''}</span><span>+${fmt(cFee)}</span></div>`:''}
-      <div class="qp-row" style="border-top:1px solid var(--g300);margin-top:2px;padding-top:6px;"><span>Taxable Value</span><span>${fmt(fi)}</span></div>
-      ${gstEn?(inter?`<div class="qp-row"><span>IGST (${gPct}%)</span><span>+${fmt(gAmt)}</span></div>`:`<div class="qp-row"><span>CGST (${gPct/2}%)</span><span>+${fmt(gAmt/2)}</span></div><div class="qp-row"><span>SGST (${gPct/2}%)</span><span>+${fmt(gAmt/2)}</span></div>`):''}
-      <div class="qp-row qp-total"><span>Total ${gstEn?'(Incl. GST)':creativeOn&&cFee>0?'(Campaign + Creative)':'Campaign Value'}</span><span>${fmt(gt)}</span></div>
+      ${gOn?`<div class="qp-row"><span>Taxable Value</span><span>${fmt(tv)}</span></div>`:''}
+      ${gOn&&gType==='intra'?`<div class="qp-row"><span>CGST (${(gstRatePct()/2).toFixed(1)}%)</span><span>+${fmt(cgstAmt())}</span></div><div class="qp-row"><span>SGST (${(gstRatePct()/2).toFixed(1)}%)</span><span>+${fmt(sgstAmt())}</span></div>`:''}
+      ${gOn&&gType==='inter'?`<div class="qp-row"><span>IGST (${gstRatePct()}%)</span><span>+${fmt(igstAmt())}</span></div>`:''}
+      <div class="qp-row qp-total"><span>Total ${creativeOn&&cFee>0?'(Campaign + Creative':'(Campaign Value'}${gOn?' + GST)':')'}</span><span>${fmt(fi)}</span></div>
     </div>
     ${creativeOn&&cNotes?`<div style="font-size:9.5px;color:var(--g600);margin-top:4px;padding:5px 8px;background:var(--g50);border-left:2px solid #1d4ed8;">Creative: ${cNotes}</div>`:''}`;
 
-    if(installments.length){
+    if(SECTIONS.paySchedule&&installments.length){
       h+=`<div class="doc-sec-lbl">Payment Schedule</div>
       <table class="qt-sched">
         <tr><th>Description</th><th>Schedule / Due</th><th style="text-align:right">Amount</th><th style="text-align:center">Status</th></tr>`;
@@ -1046,13 +1072,17 @@ function render(){
       </table>`;
     }
 
-    h+=`<div class="doc-sec-lbl">Why DISCIPL Screens?</div>
-    <div class="why-grid">${WHY.map(w=>`<div class="why-row"><span class="why-chk">✔</span>${w}</div>`).join('')}</div>`;
+    if(SECTIONS.why){
+      h+=`<div class="doc-sec-lbl">Why DISCIPL Screens?</div>
+      <div class="why-grid">${WHY.map(w=>`<div class="why-row"><span class="why-chk">✔</span>${w}</div>`).join('')}</div>`;
+    }
 
-    h+=`<div class="qt-2col">
-      <div><div class="col-lbl">Inclusions</div>${INCLUSIONS.map(i=>`<div class="incl-item">${i}</div>`).join('')}</div>
-      <div><div class="col-lbl">Terms</div>${TERMS_TEXT.map(t=>`<div class="term-item">${t}</div>`).join('')}</div>
-    </div>`;
+    if(SECTIONS.inclusions||SECTIONS.terms){
+      h+=`<div class="qt-2col">
+        ${SECTIONS.inclusions?`<div><div class="col-lbl">Inclusions</div>${INCLUSIONS.map(i=>`<div class="incl-item">${i}</div>`).join('')}</div>`:''}
+        ${SECTIONS.terms?`<div><div class="col-lbl">Terms</div>${TERMS_TEXT.map(t=>`<div class="term-item">${t}</div>`).join('')}</div>`:''}
+      </div>`;
+    }
 
     if(notes.trim()) h+=`<div class="doc-notes">${notes.replace(/\n/g,'<br>')}</div>`;
   }
@@ -1062,7 +1092,7 @@ function render(){
     h+=`<div class="inv-header">
       <div class="inv-header-left">
         <div class="inv-label">Advertising</div>
-        <div class="inv-title">${gstEn?`<span class="r">T</span>ax Invoice`:`<span class="r">I</span>nvoice`}</div>
+        <div class="inv-title"><span class="r">I</span>nvoice</div>
       </div>
       <div class="inv-status-wrap">
         <span class="inv-status ${ps}">${psLabel}</span>
@@ -1099,12 +1129,12 @@ function render(){
     </div>`;
 
     h+=`<div class="inv-amount-band">
-      <div class="iab-item"><div class="iab-lbl">Invoice Amount</div><div class="iab-val">${fmt(gt)}</div></div>
+      <div class="iab-item"><div class="iab-lbl">Invoice Amount</div><div class="iab-val">${fmt(fi)}</div></div>
       <div class="iab-item"><div class="iab-lbl">Amount Paid</div><div class="iab-val green">${fmt(re)}</div></div>
       <div class="iab-item"><div class="iab-lbl">Balance Due</div><div class="iab-val red">${fmt(ba)}</div></div>
     </div>`;
 
-    if(locs.length||screens||dur){
+    if(SECTIONS.campSummary&&(locs.length||screens||dur)){
       h+=`<div class="doc-sec-lbl">Campaign Details</div>`;
       if(locs.length) h+=`<div class="qt-locs" style="margin-bottom:8px;">${locs.map((l,i)=>l+(i<locs.length-1?'<span class="sep">•</span>':'')).join('')}</div>`;
       h+=`<div class="qt-stats" style="margin-bottom:12px;">
@@ -1121,14 +1151,15 @@ function render(){
       <div class="idb-row"><span>Campaign Value</span><span>${fmt(gr)}</span></div>
       ${di>0?`<div class="idb-row" style="color:var(--green)"><span>Discount</span><span>−${fmt(di)}</span></div>`:''}
       ${creativeOn&&cFee>0?`<div class="idb-row" style="color:var(--blue)"><span>Creative Fee</span><span>+${fmt(cFee)}</span></div>`:''}
-      <div class="idb-row" style="border-top:1px solid var(--g300);padding-top:5px;"><span>Taxable Value</span><span>${fmt(fi)}</span></div>
-      ${gstEn?(inter?`<div class="idb-row"><span>IGST (${gPct}%)</span><span>+${fmt(gAmt)}</span></div>`:`<div class="idb-row"><span>CGST (${gPct/2}%)</span><span>+${fmt(gAmt/2)}</span></div><div class="idb-row"><span>SGST (${gPct/2}%)</span><span>+${fmt(gAmt/2)}</span></div>`):''}
-      <div class="idb-row total"><span>Total Amount</span><span>${fmt(gt)}</span></div>
+      ${gOn?`<div class="idb-row"><span>Taxable Value</span><span>${fmt(tv)}</span></div>`:''}
+      ${gOn&&gType==='intra'?`<div class="idb-row"><span>CGST (${(gstRatePct()/2).toFixed(1)}%)</span><span>+${fmt(cgstAmt())}</span></div><div class="idb-row"><span>SGST (${(gstRatePct()/2).toFixed(1)}%)</span><span>+${fmt(sgstAmt())}</span></div>`:''}
+      ${gOn&&gType==='inter'?`<div class="idb-row"><span>IGST (${gstRatePct()}%)</span><span>+${fmt(igstAmt())}</span></div>`:''}
+      <div class="idb-row total"><span>Total Amount</span><span>${fmt(fi)}</span></div>
       ${re>0?`<div class="idb-row" style="color:var(--green)"><span>Amount Paid</span><span>−${fmt(re)}</span></div>`:''}
       <div class="idb-row total"><span>Balance Due</span><span style="color:var(--red)">${fmt(ba)}</span></div>
     </div>`;
 
-    if(installments.length){
+    if(SECTIONS.paySchedule&&installments.length){
       h+=`<div class="inv-detail-box">
         <div class="idb-lbl">Payment Schedule</div>`;
       installments.forEach(ins=>{
@@ -1139,11 +1170,7 @@ function render(){
     }
     h+=`</div>`;
 
-    h+=`<div style="font-size:9.5px;color:var(--g600);margin-top:2px;margin-bottom:8px;">
-      ${gstEn?`SAC Code: ${CO.sac||'998365'} (Advertising Services)&nbsp;·&nbsp;`:''}Amount in Words: <strong style="color:var(--black)">${amountInWords(gt)}</strong>
-    </div>`;
-
-    if(CO.bankName||CO.accountNumber||CO.upiId){
+    if(SECTIONS.payDetails&&(CO.bankName||CO.accountNumber||CO.upiId)){
       h+=`<div class="doc-sec-lbl">Payment Details</div>
       <div style="background:var(--g50);border:1px solid var(--g200);padding:9px 12px;">
       <div class="bank-grid">
@@ -1155,7 +1182,7 @@ function render(){
     }
 
     if(notes.trim()) h+=`<div class="doc-notes">${notes.replace(/\n/g,'<br>')}</div>`;
-    h+=`<div style="margin-top:10px;"><div class="col-lbl">Terms</div>${TERMS_TEXT.map(t=>`<div class="term-item">${t}</div>`).join('')}</div>`;
+    if(SECTIONS.terms) h+=`<div style="margin-top:10px;"><div class="col-lbl">Terms</div>${TERMS_TEXT.map(t=>`<div class="term-item">${t}</div>`).join('')}</div>`;
   }
 
   // ── RECEIPT ──
@@ -1189,7 +1216,7 @@ function render(){
       </div>
       <div class="rb-right">
         <div class="rb-lbl">Invoice Amount</div>
-        <div class="rb-inv">${fmt(gt)}</div>
+        <div class="rb-inv">${fmt(fi)}</div>
         <div class="rb-lbl" style="margin-top:6px;">Balance Outstanding</div>
         <div class="rb-bal">${fmt(ba)}</div>
       </div>
@@ -1203,7 +1230,7 @@ function render(){
       });
     }
 
-    if(CO.bankName||CO.upiId){
+    if(SECTIONS.payDetails&&(CO.bankName||CO.upiId)){
       h+=`<div class="doc-sec-lbl">Our Payment Details</div>
       <div class="bank-grid" style="background:var(--g50);border:1px solid var(--g200);padding:8px 12px;">
         ${CO.bankName?`<div class="bg-item"><span>Bank</span>${CO.bankName}</div>`:''}
@@ -1227,11 +1254,11 @@ function render(){
         ${CO.website?'Website: '+CO.website:''}${CO.address?'&nbsp;·&nbsp;'+CO.address:''}
       </div>
     </div>
-    <div>
+    ${SECTIONS.signatory?`<div>
       <div class="sig-space"></div>
       <div class="sig-line"></div>
       <div class="sig-lbl">Authorized Signatory<br>For ${CO.legal}</div>
-    </div>
+    </div>`:''}
   </div>`;
 
   document.getElementById('docPreview').innerHTML=h;
@@ -1241,8 +1268,8 @@ function render(){
 // SAVE / LOAD
 // ══════════════════════════════════════
 function buildRecord(){
-  const fi=final_(), re=recd(), ba=bal(), gt=grand();
-  const ps=re>=gt&&gt>0?'Paid':re>0?'Partially Paid':'Unpaid';
+  const fi=grandTotal(), re=recd(), ba=bal();
+  const ps=re>=fi&&fi>0?'Paid':re>0?'Partially Paid':'Unpaid';
   return {
     id: currentId||Date.now().toString(),
     docType, mainNum:g('mainNum'), campNum:g('campNum'),
@@ -1257,9 +1284,10 @@ function buildRecord(){
     payTerms:g('payTerms'), installments:[...installments],
     payMethods:[...payMethods], notes:g('notes'),
     docDate:g('docDate'), docDate2:g('docDate2'),
-    gstEnabled:gstOn(), gstRate:gstPct(),
-    gross:gross(), final:fi, gst:gstAmt(), grand:gt, recd:re, bal:ba, payStatus:ps,
+    gross:gross(), final:fi, recd:re, bal:ba, payStatus:ps,
     creativeOn:document.getElementById('creativeEnabled')?.checked||false, creativeFee:+g('creativeFee')||0, creativeCount:+g('creativeCount')||1, creativeNotes:g('creativeNotes'),
+    gstOn:gstOn(), gstType:g('gstType')||'intra', gstRate:+g('gstRate')||18,
+    sections:{...SECTIONS},
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   };
 }
@@ -1301,12 +1329,14 @@ function loadDoc(rec){
   sv('creativeCount',rec.creativeCount||1);
   sv('creativeNotes',rec.creativeNotes||'');
   sv('docDate',rec.docDate); sv('docDate2',rec.docDate2||'');
-  const gEl=document.getElementById('gstEnabled');
-  if(gEl) gEl.checked = rec.gstEnabled!==undefined ? rec.gstEnabled : true;
-  sv('gstRate', rec.gstRate!==undefined ? rec.gstRate : (CO.gstRate??18));
   document.querySelectorAll('#locGrid input').forEach(c=>{c.checked=(rec.locs||[]).includes(c.value);});
   installments=rec.installments?[...rec.installments]:[];
   payMethods=rec.payMethods?[...rec.payMethods]:[];
+  const gEl=document.getElementById('gstEnabled');
+  if(gEl){ gEl.checked=rec.gstOn||false; onGstToggle(); }
+  sv('gstType',rec.gstType||'intra'); sv('gstRate',rec.gstRate||18);
+  SECTIONS = rec.sections ? {...SECTIONS,...rec.sections} : {campSummary:true,paySchedule:true,payDetails:true,why:true,inclusions:true,terms:true,signatory:true};
+  applySectionsToUI();
   updateDocUI(); renderInsts(); renderPMs(); calcAndRender();
   showView('gen');
 }
@@ -1394,7 +1424,7 @@ function renderHistory(){
       <td><span class="pill ${typePill[d.docType]||''}">${tp}</span></td>
       <td class="td-bold">${d.clientName||'—'}</td>
       <td><span class="pill ${psPill[ps]||''}">${ps}</span></td>
-      <td class="td-right">${fmt(d.grand!==undefined?d.grand:d.final||0)}</td>
+      <td class="td-right">${fmt(d.final||0)}</td>
       <td>${d.createdAt?new Date(d.createdAt).toLocaleDateString('en-IN'):'—'}</td>
       <td class="td-actions">
         <button class="tbl-btn" onclick='loadDoc(${JSON.stringify(d).replace(/'/g,"&#39;")})'>Open</button>
@@ -1416,8 +1446,7 @@ function loadSettingsUI(){
   sv('s-gstin',CO.gstin||''); sv('s-pan',CO.pan||'');
   sv('s-cin',CO.cin||''); sv('s-bank',CO.bankName||'');
   sv('s-accno',CO.accountNumber||''); sv('s-ifsc',CO.ifsc||'');
-  sv('s-upi',CO.upiId||''); sv('s-gstrate',CO.gstRate??18);
-  sv('s-sac',CO.sac||'998365');
+  sv('s-upi',CO.upiId||'');
 }
 async function saveSettings(){
   CO={
@@ -1425,14 +1454,12 @@ async function saveSettings(){
     phone:g('s-phone'),email:g('s-email'),website:g('s-website'),
     gstin:g('s-gstin'),pan:g('s-pan'),cin:g('s-cin'),
     bankName:g('s-bank'),accountNumber:g('s-accno'),
-    ifsc:g('s-ifsc'),upiId:g('s-upi'),
-    gstRate:+g('s-gstrate')||18, sac:g('s-sac')||'998365'
+    ifsc:g('s-ifsc'),upiId:g('s-upi')
   };
-  sv('gstRate',CO.gstRate);
   saveLocal();
   await pushToCloud();
   toast('Settings saved','ok');
-  calcAndRender();
+  render();
 }
 
 // ══════════════════════════════════════
@@ -1444,11 +1471,14 @@ function resetForm(){
    'clientGstin','notes','startDate','endDate','invoiceRef'].forEach(id=>sv(id,''));
   sv('screens',1); sv('duration',1); sv('rate',2500); sv('discount',0); sv('amtReceived',0);
   sv('campStatus','Draft'); sv('payTerms','full');
-  const gel=document.getElementById('gstEnabled'); if(gel) gel.checked=true;
-  sv('gstRate',CO.gstRate??18);
   const cel=document.getElementById('creativeEnabled'); if(cel) cel.checked=false;
   sv('creativeFee',0); sv('creativeCount',1); sv('creativeNotes','');
   const cw=document.getElementById('creativeWrap'); if(cw) cw.style.display='none';
+  const gel=document.getElementById('gstEnabled'); if(gel) gel.checked=false;
+  sv('gstType','intra'); sv('gstRate',18);
+  const gw=document.getElementById('gstWrap'); if(gw) gw.style.display='none';
+  SECTIONS = {campSummary:true,paySchedule:true,payDetails:true,why:true,inclusions:true,terms:true,signatory:true};
+  applySectionsToUI();
   document.querySelectorAll('#locGrid input').forEach(c=>c.checked=false);
   payMethods=[]; installments=[];
   const today=new Date().toISOString().split('T')[0]; sv('docDate',today);
@@ -1501,7 +1531,6 @@ window.onload = async ()=>{
   buildLocGrid();
   loadLocal();
   loadSettingsUI();
-  sv('gstRate',CO.gstRate??18);
   const today=new Date().toISOString().split('T')[0];
   sv('docDate',today);
   const vd=new Date(); vd.setDate(vd.getDate()+15); sv('docDate2',vd.toISOString().split('T')[0]);
@@ -1511,8 +1540,6 @@ window.onload = async ()=>{
   calcAndRender();
   renderDashboard();
   await pullFromCloud();
-  sv('gstRate',CO.gstRate??18);
-  calcAndRender();
   renderDashboard();
 };
 </script>
