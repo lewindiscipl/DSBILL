@@ -427,7 +427,7 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
   .save-btn{border-radius:7px;transition:transform .15s,box-shadow .15s;}
   .save-btn:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(200,16,46,.35);}
 
-  .loc-grid{border-radius:8px;overflow:hidden;}
+  .loc-grid{border-radius:8px;overflow-y:auto;overflow-x:hidden;}
   .loc-item{transition:background .12s;}
 
   .qt-locs .loc-chip{border-radius:20px;transition:box-shadow .12s;}
@@ -862,6 +862,25 @@ const recd  = ()=>{
   return Math.max(fromInst, +g('amtReceived')||0);
 };
 const bal   = ()=> Math.max(0, grandTotal()-recd());
+
+// Amount still to be split across *unpaid* installments:
+// total payable (incl. GST + creative) minus installments already marked paid
+// minus any amount received outside the schedule (e.g. a creative fee paid directly).
+function unpaidSplitTarget(){
+  const total = grandTotal();
+  const paidInstAmt = installments.filter(i=>i.paid).reduce((a,i)=>a+(+i.amount||0),0);
+  const extraReceived = Math.max(0, (+g('amtReceived')||0) - paidInstAmt);
+  return Math.max(0, total - paidInstAmt - extraReceived);
+}
+function distributeAcrossUnpaid(){
+  const remaining = unpaidSplitTarget();
+  const unpaid = installments.filter(i=>!i.paid);
+  if(!unpaid.length) return;
+  const each = Math.floor(remaining/unpaid.length);
+  unpaid.forEach((ins,idx)=>{
+    ins.amount = idx<unpaid.length-1 ? each : remaining-each*(unpaid.length-1);
+  });
+}
 const creativeFee_ = ()=> document.getElementById('creativeEnabled')?.checked ? (+g('creativeFee')||0) : 0;
 const finalWithCreative = ()=> Math.max(0, gross()-disc()) + creativeFee_();
 
@@ -965,26 +984,26 @@ function onScreensChange(){
 
 // ── INSTALLMENTS ──
 function onTermsChange(){
-  const t=g('payTerms'), f=final_();
+  const t=g('payTerms');
   const pp = installments.map(i=>i.paid||false);
+  const paidAmts = installments.map(i=>i.paid?(+i.amount||0):0);
   if(t==='full'){
-    installments=[{desc:'Full Payment',due:'Before Campaign Start',amount:f,paid:pp[0]||false}];
+    installments=[{desc:'Full Payment',due:'Before Campaign Start',amount:paidAmts[0]||0,paid:pp[0]||false}];
   } else if(t==='two'){
-    const h=Math.round(f/2);
     installments=[
-      {desc:'1st Installment',due:'Before Campaign Start',amount:h,paid:pp[0]||false},
-      {desc:'2nd Installment',due:'After Campaign Midpoint',amount:f-h,paid:pp[1]||false}
+      {desc:'1st Installment',due:'Before Campaign Start',amount:paidAmts[0]||0,paid:pp[0]||false},
+      {desc:'2nd Installment',due:'After Campaign Midpoint',amount:paidAmts[1]||0,paid:pp[1]||false}
     ];
   } else if(t==='three'){
-    const th=Math.round(f/3);
     installments=[
-      {desc:'1st Installment',due:'Before Campaign Start',amount:th,paid:pp[0]||false},
-      {desc:'2nd Installment',due:'After 3 Months',amount:th,paid:pp[1]||false},
-      {desc:'3rd Installment',due:'After 6 Months',amount:f-2*th,paid:pp[2]||false}
+      {desc:'1st Installment',due:'Before Campaign Start',amount:paidAmts[0]||0,paid:pp[0]||false},
+      {desc:'2nd Installment',due:'After 3 Months',amount:paidAmts[1]||0,paid:pp[1]||false},
+      {desc:'3rd Installment',due:'After 6 Months',amount:paidAmts[2]||0,paid:pp[2]||false}
     ];
   } else {
     if(!installments.length) installments=[{desc:'',due:'',amount:0,paid:false}];
   }
+  if(t!=='custom') distributeAcrossUnpaid();
   document.getElementById('addInstBtn').style.display=t==='custom'?'block':'none';
   renderInsts(); calcAndRender();
 }
@@ -1068,13 +1087,11 @@ function calcAndRender(){
   document.getElementById('i-pgym').textContent=n>0?fmt(perGym):'—';
   document.getElementById('i-net').textContent=fmt(net);
 
-  // sync install amounts
+  // sync install amounts — split the outstanding balance (not just campaign value)
+  // across unpaid installments; paid ones and separately-received amounts are left alone
   const t=g('payTerms');
   if(t!=='custom'&&installments.length){
-    const f=final_();
-    if(t==='full'){ installments[0].amount=f; }
-    else if(t==='two'){ const h=Math.round(f/2); installments[0].amount=h; if(installments[1]) installments[1].amount=f-h; }
-    else if(t==='three'){ const th=Math.round(f/3); installments[0].amount=th; if(installments[1]) installments[1].amount=th; if(installments[2]) installments[2].amount=f-2*th; }
+    distributeAcrossUnpaid();
     renderInsts();
   }
   render();
@@ -1244,8 +1261,8 @@ function render(){
       h+=`<div class="qt-stats" style="margin-bottom:12px;">
         <div class="qt-stat"><div class="qsv">${screens}</div><div class="qsl">Screens</div></div>
         <div class="qt-stat"><div class="qsv">${dur}</div><div class="qsl">Months</div></div>
-        <div class="qt-stat"><div class="qsv"><span class="sym">₹</span>${rate_.toLocaleString('en-IN')}</div><div class="qsl">Per Screen / Month</div></div>
-        ${sd?`<div class="qt-stat"><div class="qsv" style="font-size:11px;padding-top:6px;">${fmtDate(sd)}</div><div class="qsl">Start Date</div></div>`:''}
+        ${sd?`<div class="qt-stat"><div class="qsv" style="font-size:12px;padding-top:6px;">${fmtDate(sd)}</div><div class="qsl">Start Date</div></div>`:''}
+        ${ed?`<div class="qt-stat"><div class="qsv" style="font-size:12px;padding-top:6px;">${fmtDate(ed)}</div><div class="qsl">End Date</div></div>`:''}
       </div>`;
     }
 
