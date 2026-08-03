@@ -141,6 +141,7 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
 .irow-fields{display:grid;grid-template-columns:1fr 80px 1fr;gap:4px;}
 .irow-fields input{border:1px solid var(--g200);padding:4px 6px;font-size:10.5px;font-family:'Inter',sans-serif;outline:none;width:100%;}
 .irow-fields input:focus{border-color:var(--black);}
+.irow-fields input[readonly]{background:var(--g100);color:var(--g600);cursor:not-allowed;}
 .paid-chk{display:flex;align-items:center;gap:5px;margin-top:5px;cursor:pointer;font-size:9px;font-weight:600;color:var(--g600);user-select:none;}
 .paid-chk input{width:12px;height:12px;accent-color:var(--green);cursor:pointer;}
 .paid-chk.checked{color:var(--green);}
@@ -625,6 +626,11 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
             <div class="f"><label>No. of Creatives</label><input type="number" id="creativeCount" value="1" min="1" oninput="render()"></div>
           </div>
           <div class="f"><label>Creative Notes <small style="color:var(--g400)">(opt)</small></label><input type="text" id="creativeNotes" placeholder="e.g. Static image + 15s video" oninput="render()"></div>
+          <div class="f"><label>Creative Fee — When to Pay</label><input type="text" id="creativeDue" placeholder="e.g. Before creative delivery" oninput="creativeDue=this.value;render()"></div>
+          <label class="paid-chk" id="creativePaidWrap" style="margin-top:2px;">
+            <input type="checkbox" id="creativePaidChk" onchange="creativePaid=this.checked;renderCreativePaidUI();calcAndRender()">
+            <span id="creativePaidLbl">Mark Creative Fee as Paid</span>
+          </label>
         </div>
       </div>
 
@@ -848,6 +854,8 @@ function mainNumForType(t){ return t==='quotation'?nextQT():t==='invoice'?nextIN
 let docType = 'quotation';
 let installments = [];
 let payMethods = [];
+let creativePaid = false;
+let creativeDue = '';
 let currentId = null;
 
 const g  = id => { const e=document.getElementById(id); return e?e.value:''; };
@@ -856,10 +864,11 @@ const gross = ()=> (+g('screens'))*(+g('duration'))*(+g('rate'));
 const disc  = ()=> +g('discount')||0;
 const final_= ()=> Math.max(0, gross()-disc()); // base without creative
 const recd  = ()=>{
-  if(docType==='quotation') return installments.filter(i=>i.paid).reduce((a,i)=>a+(+i.amount||0),0);
+  const cfPaid = ()=> creativePaid ? creativeFee_() : 0;
+  if(docType==='quotation') return installments.filter(i=>i.paid).reduce((a,i)=>a+(+i.amount||0),0) + cfPaid();
   if(docType==='receipt')   return payMethods.reduce((a,p)=>a+(+p.amount||0),0);
   const fromInst = installments.filter(i=>i.paid).reduce((a,i)=>a+(+i.amount||0),0);
-  return Math.max(fromInst, +g('amtReceived')||0);
+  return Math.max(fromInst, +g('amtReceived')||0) + cfPaid();
 };
 const bal   = ()=> Math.max(0, grandTotal()-recd());
 
@@ -871,7 +880,8 @@ const bal   = ()=> Math.max(0, grandTotal()-recd());
 function unpaidSplitTarget(){
   const total = grandTotal() - creativeFee_();
   const paidInstAmt = installments.filter(i=>i.paid).reduce((a,i)=>a+(+i.amount||0),0);
-  const extraReceived = Math.max(0, (+g('amtReceived')||0) - paidInstAmt);
+  const cfPaid = creativePaid ? creativeFee_() : 0;
+  const extraReceived = Math.max(0, (+g('amtReceived')||0) - paidInstAmt - cfPaid);
   return Math.max(0, total - paidInstAmt - extraReceived);
 }
 function distributeAcrossUnpaid(){
@@ -906,6 +916,13 @@ function onCreativeToggle(){
   const en = document.getElementById('creativeEnabled').checked;
   document.getElementById('creativeWrap').style.display = en?'block':'none';
   calcAndRender();
+}
+function renderCreativePaidUI(){
+  const wrap=document.getElementById('creativePaidWrap'), lbl=document.getElementById('creativePaidLbl');
+  if(!wrap) return;
+  wrap.classList.toggle('checked', creativePaid);
+  document.getElementById('creativePaidChk').checked = creativePaid;
+  lbl.textContent = creativePaid ? '✓ Creative Fee Marked as Paid' : 'Mark Creative Fee as Paid';
 }
 
 // ── SECTION VISIBILITY ──
@@ -1020,6 +1037,7 @@ function togglePaid(i){
   renderInsts(); calcAndRender();
 }
 function renderInsts(){
+  const isCustom = g('payTerms')==='custom';
   document.getElementById('instList').innerHTML=installments.map((ins,i)=>`
     <div class="irow${ins.paid?' paid':''}">
       <div class="irow-top">
@@ -1028,7 +1046,7 @@ function renderInsts(){
       </div>
       <div class="irow-fields">
         <input placeholder="Description" value="${ins.desc||''}" oninput="installments[${i}].desc=this.value;render()">
-        <input type="number" placeholder="₹" value="${ins.amount||''}" oninput="installments[${i}].amount=+this.value||0;calcAndRender()">
+        <input type="number" placeholder="₹" value="${ins.amount||''}" ${isCustom?'':'readonly title="Switch Payment Terms to Custom to edit amounts manually"'} oninput="installments[${i}].amount=+this.value||0;calcAndRender()">
         <input placeholder="Due / Schedule" value="${ins.due||''}" oninput="installments[${i}].due=this.value;render()">
       </div>
       <label class="paid-chk${ins.paid?' checked':''}">
@@ -1171,7 +1189,7 @@ function render(){
     </div>
     ${creativeOn&&cNotes?`<div style="font-size:9.5px;color:var(--g600);margin-top:4px;padding:5px 8px;background:var(--g50);border-left:2px solid #1d4ed8;">Creative: ${cNotes}</div>`:''}`;
 
-    if(SECTIONS.paySchedule&&installments.length){
+    if(SECTIONS.paySchedule&&(installments.length||(creativeOn&&cFee>0))){
       h+=`<div class="doc-sec-lbl">Payment Schedule</div>
       <table class="qt-sched">
         <tr><th>Description</th><th>Schedule / Due</th><th style="text-align:right">Amount</th><th style="text-align:center">Status</th></tr>`;
@@ -1179,7 +1197,12 @@ function render(){
         const badge=ins.paid?`<span class="sched-paid">PAID</span>`:`<span class="sched-pend">PENDING</span>`;
         h+=`<tr ${ins.paid?'style="background:#f0fdf4"':''}><td>${ins.desc||'—'}</td><td>${ins.due||'—'}</td><td class="ra">${fmt(ins.amount||0)}</td><td style="text-align:center">${badge}</td></tr>`;
       });
-      h+=`<tr class="tot"><td colspan="2">Total</td><td class="ra">${fmt(installments.reduce((a,i)=>a+(+i.amount||0),0))}</td><td></td></tr>
+      if(creativeOn&&cFee>0){
+        const cfBadge=creativePaid?`<span class="sched-paid">PAID</span>`:`<span class="sched-pend">PENDING</span>`;
+        h+=`<tr ${creativePaid?'style="background:#f0fdf4"':''}><td>Creative Design Fee</td><td>${creativeDue||'—'}</td><td class="ra">${fmt(cFee)}</td><td style="text-align:center">${cfBadge}</td></tr>`;
+      }
+      const schedTotal=installments.reduce((a,i)=>a+(+i.amount||0),0)+((creativeOn&&cFee>0)?cFee:0);
+      h+=`<tr class="tot"><td colspan="2">Total</td><td class="ra">${fmt(schedTotal)}</td><td></td></tr>
       </table>`;
     }
 
@@ -1282,13 +1305,17 @@ function render(){
       <div class="idb-row total"><span>Balance Due</span><span style="color:var(--red)">${fmt(ba)}</span></div>
     </div>`;
 
-    if(SECTIONS.paySchedule&&installments.length){
+    if(SECTIONS.paySchedule&&(installments.length||(creativeOn&&cFee>0))){
       h+=`<div class="inv-detail-box">
         <div class="idb-lbl">Payment Schedule</div>`;
       installments.forEach(ins=>{
         const badge=ins.paid?`<span class="sched-paid">PAID</span>`:`<span class="sched-pend">PENDING</span>`;
         h+=`<div class="idb-row" ${ins.paid?'style="background:#f0fdf4"':''}><span>${ins.desc||'—'}<br><small style="color:var(--g400);font-size:9px;">${ins.due||''}</small></span><span style="text-align:right">${fmt(ins.amount||0)}<br>${badge}</span></div>`;
       });
+      if(creativeOn&&cFee>0){
+        const cfBadge=creativePaid?`<span class="sched-paid">PAID</span>`:`<span class="sched-pend">PENDING</span>`;
+        h+=`<div class="idb-row" ${creativePaid?'style="background:#f0fdf4"':''}><span>Creative Design Fee<br><small style="color:var(--g400);font-size:9px;">${creativeDue||''}</small></span><span style="text-align:right">${fmt(cFee)}<br>${cfBadge}</span></div>`;
+      }
       h+=`</div>`;
     }
     h+=`</div>`;
@@ -1433,6 +1460,7 @@ function buildRecord(){
     docDate:g('docDate'), docDate2:g('docDate2'),
     gross:gross(), final:fi, recd:re, bal:ba, payStatus:ps,
     creativeOn:document.getElementById('creativeEnabled')?.checked||false, creativeFee:+g('creativeFee')||0, creativeCount:+g('creativeCount')||1, creativeNotes:g('creativeNotes'),
+    creativeDue:creativeDue, creativePaid:creativePaid,
     gstOn:gstOn(), gstType:g('gstType')||'intra', gstRate:+g('gstRate')||18,
     sections:{...SECTIONS},
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
@@ -1475,6 +1503,8 @@ function loadDoc(rec){
   sv('creativeFee',rec.creativeFee||0);
   sv('creativeCount',rec.creativeCount||1);
   sv('creativeNotes',rec.creativeNotes||'');
+  creativeDue = rec.creativeDue||''; sv('creativeDue',creativeDue);
+  creativePaid = rec.creativePaid||false; renderCreativePaidUI();
   sv('docDate',rec.docDate); sv('docDate2',rec.docDate2||'');
   document.querySelectorAll('#locGrid input').forEach(c=>{c.checked=(rec.locs||[]).includes(c.value);});
   installments=rec.installments?[...rec.installments]:[];
@@ -1624,6 +1654,7 @@ function resetForm(){
   const cel=document.getElementById('creativeEnabled'); if(cel) cel.checked=false;
   sv('creativeFee',0); sv('creativeCount',1); sv('creativeNotes','');
   const cw=document.getElementById('creativeWrap'); if(cw) cw.style.display='none';
+  creativeDue=''; sv('creativeDue',''); creativePaid=false; renderCreativePaidUI();
   const gel=document.getElementById('gstEnabled'); if(gel) gel.checked=false;
   sv('gstType','intra'); sv('gstRate',18);
   const gw=document.getElementById('gstWrap'); if(gw) gw.style.display='none';
