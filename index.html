@@ -673,7 +673,7 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
         <div class="int-r int-sep"><span>No. of Gyms</span><strong id="i-ngym">0</strong></div>
         <div class="int-r"><span>Gym Revenue Share (20%)</span><strong id="i-gym">&#8377;0</strong></div>
         <div class="int-r"><span>Revenue / Gym</span><strong id="i-pgym">&#x2014;</strong></div>
-        <div class="int-r hi"><span>Net Profit (after gym share)</span><strong id="i-net">&#8377;0</strong></div>
+        <div class="int-r hi"><span>Net Profit (after gym share, excl. creative)</span><strong id="i-net">&#8377;0</strong></div>
       </div>
     </div>
 
@@ -864,10 +864,12 @@ const recd  = ()=>{
 const bal   = ()=> Math.max(0, grandTotal()-recd());
 
 // Amount still to be split across *unpaid* installments:
-// total payable (incl. GST + creative) minus installments already marked paid
-// minus any amount received outside the schedule (e.g. a creative fee paid directly).
+// total payable (incl. GST) minus the creative fee (that's a pass-through
+// to the marketing team, not company revenue, so it's never part of the
+// installment schedule — it's tracked/received separately) minus
+// installments already marked paid minus any amount received outside the schedule.
 function unpaidSplitTarget(){
-  const total = grandTotal();
+  const total = grandTotal() - creativeFee_();
   const paidInstAmt = installments.filter(i=>i.paid).reduce((a,i)=>a+(+i.amount||0),0);
   const extraReceived = Math.max(0, (+g('amtReceived')||0) - paidInstAmt);
   return Math.max(0, total - paidInstAmt - extraReceived);
@@ -1054,7 +1056,7 @@ function renderPMs(){
 function calcAndRender(){
   const gr=gross(),di=disc(),cf=creativeFee_(),tv=taxableValue(),gAmt=gstAmount(),fi=grandTotal(),re=recd(),ba=bal();
   const locs=selLocs(),n=locs.length;
-  const campVal=Math.max(0,gr-di),gymSh=campVal*.2,perGym=n>0?gymSh/n:0,net=fi-gymSh;
+  const campVal=Math.max(0,gr-di),gymSh=campVal*.2,perGym=n>0?gymSh/n:0,net=(fi-cf)-gymSh;
 
   let pf=`<div class="pf-row"><span>Campaign Value</span><span>${fmt(gr)}</span></div>`;
   if(di>0) pf+=`<div class="pf-row pf-disc"><span>Discount</span><span>−${fmt(di)}</span></div>`;
