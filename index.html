@@ -119,10 +119,14 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
 .num-input{font-weight:700 !important;color:var(--red) !important;font-size:10.5px !important;letter-spacing:.04em !important;}
 
 /* Location grid */
-.loc-grid{border:1px solid var(--g200);background:var(--g50);max-height:148px;overflow-y:auto;}
-.loc-item{display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:10.5px;cursor:pointer;}
+.loc-grid{border:1px solid var(--g200);background:var(--g50);max-height:200px;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;}
+.loc-item{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:10px;cursor:pointer;border-bottom:1px solid var(--g100);}
+.loc-item:nth-child(odd){border-right:1px solid var(--g100);}
 .loc-item:hover{background:var(--g100);}
 .loc-item input{width:12px;height:12px;accent-color:var(--red);cursor:pointer;flex-shrink:0;}
+.loc-item-text{display:flex;flex-direction:column;line-height:1.25;overflow:hidden;}
+.loc-name{font-weight:600;color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.loc-place{font-size:8.5px;color:var(--g500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .screen-warn{background:var(--orange-bg);border:1px solid #f59e0b;padding:4px 7px;font-size:9px;color:var(--orange);margin-top:3px;display:none;}
 .screen-warn.show{display:block;}
 
@@ -190,6 +194,11 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
 .pb-pageusage{font-size:9.5px;font-weight:700;padding:5px 10px;border-radius:2px;background:var(--g100);color:var(--g600);white-space:nowrap;}
 .pb-pageusage.warn{background:var(--red-bg);color:var(--red);}
 .pb-pageusage.ok{background:var(--green-bg);color:var(--green);}
+.sec-toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.sec-toggle-row{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;padding:4px 6px;border-radius:2px;transition:background .12s,color .12s;}
+.sec-toggle-row:hover{background:var(--g50);color:var(--black);}
+.sec-toggle-row input{width:13px;height:13px;flex-shrink:0;accent-color:var(--red);cursor:pointer;}
+.sec-toggle-row:has(input:checked){color:var(--black);}
 .pb-btn{font-size:9px;font-weight:700;padding:6px 12px;border:1px solid var(--g300);background:var(--white);cursor:pointer;color:var(--black);font-family:'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;transition:all .12s;}
 .pb-btn:hover,.pb-btn.primary{background:var(--black);color:var(--white);border-color:var(--black);}
 
@@ -233,9 +242,10 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
 .qt-mg-row .mv{font-size:10.5px;font-weight:600;color:var(--black);text-align:right;}
 .qt-right .ml{font-size:7px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--g400);display:block;}
 .qt-right .mv{font-size:10.5px;font-weight:600;color:var(--black);}
-.qt-locs{font-size:10px;color:var(--black);margin-bottom:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:3px 14px;}
-.qt-locs .loc-chip{display:flex;align-items:center;gap:5px;line-height:1.4;}
-.qt-locs .loc-chip::before{content:"";width:4px;height:4px;background:var(--red);border-radius:50%;flex-shrink:0;}
+.qt-locs{margin-bottom:10px;display:flex;flex-wrap:wrap;gap:5px;}
+.qt-locs .loc-chip{display:inline-flex;align-items:baseline;gap:4px;font-size:9.5px;line-height:1.3;background:var(--g50);border:1px solid var(--g200);border-radius:2px;padding:3px 7px;}
+.qt-locs .loc-chip .lc-name{font-weight:700;color:var(--black);}
+.qt-locs .loc-chip .lc-place{color:var(--g500);font-size:9px;}
 .qt-stats{display:flex;gap:0;padding-bottom:10px;border-bottom:1px solid var(--g200);margin-bottom:0;}
 .qt-stat{flex:1;}
 .qsv{font-size:22px;font-weight:800;color:var(--black);letter-spacing:-.03em;line-height:1;margin-bottom:2px;}
@@ -452,14 +462,14 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
       <!-- Section Visibility -->
       <div class="sec">
         <div class="sec-lbl">Document Sections</div>
-        <div class="f" style="display:grid;gap:4px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-campSummary" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Campaign Summary</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-paySchedule" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Payment Schedule</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-payDetails" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Payment Details (Bank/UPI)</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-why" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Why DISCIPL Screens</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-inclusions" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Inclusions</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-terms" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Terms & Conditions</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--g600);cursor:pointer;"><input type="checkbox" id="sec-signatory" checked onchange="onSectionToggle()" style="width:auto;accent-color:var(--red);">Authorized Signatory</label>
+        <div class="sec-toggle-grid">
+          <label class="sec-toggle-row"><input type="checkbox" id="sec-campSummary" checked onchange="onSectionToggle()">Campaign Summary</label>
+          <label class="sec-toggle-row"><input type="checkbox" id="sec-paySchedule" checked onchange="onSectionToggle()">Payment Schedule</label>
+          <label class="sec-toggle-row"><input type="checkbox" id="sec-payDetails" checked onchange="onSectionToggle()">Payment Details</label>
+          <label class="sec-toggle-row"><input type="checkbox" id="sec-why" checked onchange="onSectionToggle()">Why DISCIPL</label>
+          <label class="sec-toggle-row"><input type="checkbox" id="sec-inclusions" checked onchange="onSectionToggle()">Inclusions</label>
+          <label class="sec-toggle-row"><input type="checkbox" id="sec-terms" checked onchange="onSectionToggle()">Terms</label>
+          <label class="sec-toggle-row"><input type="checkbox" id="sec-signatory" checked onchange="onSectionToggle()">Signatory</label>
         </div>
       </div>
 
@@ -505,12 +515,7 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
           <label>Amount Received (₹)</label>
           <input type="number" id="amtReceived" value="0" oninput="calcAndRender()">
         </div>
-        <div class="f">
-          <label>
-            <input type="checkbox" id="gstEnabled" onchange="onGstToggle()" style="width:auto;margin-right:6px;accent-color:var(--red);">
-            Apply GST
-          </label>
-        </div>
+        <label class="sec-toggle-row" style="margin-bottom:8px;"><input type="checkbox" id="gstEnabled" onchange="onGstToggle()">Apply GST</label>
         <div id="gstWrap" style="display:none;">
           <div class="r2">
             <div class="f">
@@ -529,12 +534,7 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
       <!-- Creative Fee -->
       <div class="sec">
         <div class="sec-lbl">Creative Fee <small style="color:var(--g400);font-weight:400;text-transform:none;letter-spacing:0;">(optional)</small></div>
-        <div class="f">
-          <label>
-            <input type="checkbox" id="creativeEnabled" onchange="onCreativeToggle()" style="width:auto;margin-right:6px;accent-color:var(--red);">
-            Client needs ad creative design
-          </label>
-        </div>
+        <label class="sec-toggle-row" style="margin-bottom:8px;"><input type="checkbox" id="creativeEnabled" onchange="onCreativeToggle()">Client needs ad creative design</label>
         <div id="creativeWrap" style="display:none;">
           <div class="r2">
             <div class="f"><label>Creative Fee (₹)</label><input type="number" id="creativeFee" value="0" oninput="calcAndRender()"></div>
@@ -1047,7 +1047,7 @@ function render(){
 
     if(SECTIONS.campSummary&&(locs.length||screens||dur)){
       h+=`<div class="doc-sec-lbl">Campaign Details</div>`;
-      if(locs.length) h+=`<div class="qt-locs">${locs.map(l=>`<div class="loc-chip">${l}</div>`).join('')}</div>`;
+      if(locs.length) h+=`<div class="qt-locs">${locs.map(l=>`<div class="loc-chip"><span class="lc-name">${l.split(String.fromCharCode(8211))[0].trim()}</span><span class="lc-place">${l.includes(String.fromCharCode(8211))?"— "+l.split(String.fromCharCode(8211))[1].trim():""}</span></div>`).join('')}</div>`;
       h+=`<div class="qt-stats">
         <div class="qt-stat"><div class="qsv">${screens}</div><div class="qsl">Screens</div></div>
         <div class="qt-stat"><div class="qsv">${dur}</div><div class="qsl">Months</div></div>
@@ -1156,7 +1156,7 @@ function render(){
 
     if(SECTIONS.campSummary&&(locs.length||screens||dur)){
       h+=`<div class="doc-sec-lbl">Campaign Details</div>`;
-      if(locs.length) h+=`<div class="qt-locs" style="margin-bottom:8px;">${locs.map(l=>`<div class="loc-chip">${l}</div>`).join('')}</div>`;
+      if(locs.length) h+=`<div class="qt-locs" style="margin-bottom:8px;">${locs.map(l=>`<div class="loc-chip"><span class="lc-name">${l.split(String.fromCharCode(8211))[0].trim()}</span><span class="lc-place">${l.includes(String.fromCharCode(8211))?"— "+l.split(String.fromCharCode(8211))[1].trim():""}</span></div>`).join('')}</div>`;
       h+=`<div class="qt-stats" style="margin-bottom:12px;">
         <div class="qt-stat"><div class="qsv">${screens}</div><div class="qsl">Screens</div></div>
         <div class="qt-stat"><div class="qsv">${dur}</div><div class="qsl">Months</div></div>
@@ -1549,10 +1549,14 @@ function toast(msg,type=''){
 // INIT
 // ══════════════════════════════════════
 function buildLocGrid(){
-  document.getElementById('locGrid').innerHTML=LOCS.map(l=>`
-    <label class="loc-item">
-      <input type="checkbox" value="${l}" onchange="onLocChange()"> ${l}
-    </label>`).join('');
+  document.getElementById('locGrid').innerHTML=LOCS.map(l=>{
+    const parts=l.split('–').map(s=>s.trim());
+    const name=parts[0], loc=parts[1]||'';
+    return `<label class="loc-item">
+      <input type="checkbox" value="${l}" onchange="onLocChange()">
+      <span class="loc-item-text"><span class="loc-name">${name}</span>${loc?`<span class="loc-place">${loc}</span>`:''}</span>
+    </label>`;
+  }).join('');
 }
 
 
