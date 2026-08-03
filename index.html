@@ -187,6 +187,9 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
 .preview-area{flex:1;padding:24px;display:flex;flex-direction:column;align-items:center;overflow-y:auto;background:#e2e2e2;}
 .preview-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;width:794px;}
 .preview-bar .pb-label{font-size:8.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--g500);flex:1;}
+.pb-pageusage{font-size:9.5px;font-weight:700;padding:5px 10px;border-radius:2px;background:var(--g100);color:var(--g600);white-space:nowrap;}
+.pb-pageusage.warn{background:var(--red-bg);color:var(--red);}
+.pb-pageusage.ok{background:var(--green-bg);color:var(--green);}
 .pb-btn{font-size:9px;font-weight:700;padding:6px 12px;border:1px solid var(--g300);background:var(--white);cursor:pointer;color:var(--black);font-family:'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;transition:all .12s;}
 .pb-btn:hover,.pb-btn.primary{background:var(--black);color:var(--white);border-color:var(--black);}
 
@@ -230,8 +233,9 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
 .qt-mg-row .mv{font-size:10.5px;font-weight:600;color:var(--black);text-align:right;}
 .qt-right .ml{font-size:7px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--g400);display:block;}
 .qt-right .mv{font-size:10.5px;font-weight:600;color:var(--black);}
-.qt-locs{font-size:10.5px;color:var(--black);line-height:1.6;margin-bottom:10px;}
-.qt-locs .sep{color:var(--red);margin:0 5px;}
+.qt-locs{font-size:10px;color:var(--black);margin-bottom:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:3px 14px;}
+.qt-locs .loc-chip{display:flex;align-items:center;gap:5px;line-height:1.4;}
+.qt-locs .loc-chip::before{content:"";width:4px;height:4px;background:var(--red);border-radius:50%;flex-shrink:0;}
 .qt-stats{display:flex;gap:0;padding-bottom:10px;border-bottom:1px solid var(--g200);margin-bottom:0;}
 .qt-stat{flex:1;}
 .qsv{font-size:22px;font-weight:800;color:var(--black);letter-spacing:-.03em;line-height:1;margin-bottom:2px;}
@@ -603,6 +607,7 @@ body{font-family:'Inter',sans-serif;background:#e2e2e2;color:var(--black);font-s
   <div class="preview-area">
     <div class="preview-bar">
       <span class="pb-label">Live Preview — A4</span>
+      <span class="pb-pageusage" id="pageUsage">A4 Page Usage: —</span>
       <button class="pb-btn primary" onclick="printDoc()">Print / PDF</button>
     </div>
     <div class="a4" id="docPreview"></div>
@@ -1042,7 +1047,7 @@ function render(){
 
     if(SECTIONS.campSummary&&(locs.length||screens||dur)){
       h+=`<div class="doc-sec-lbl">Campaign Details</div>`;
-      if(locs.length) h+=`<div class="qt-locs">${locs.map((l,i)=>l+(i<locs.length-1?'<span class="sep">•</span>':'')).join('')}</div>`;
+      if(locs.length) h+=`<div class="qt-locs">${locs.map(l=>`<div class="loc-chip">${l}</div>`).join('')}</div>`;
       h+=`<div class="qt-stats">
         <div class="qt-stat"><div class="qsv">${screens}</div><div class="qsl">Screens</div></div>
         <div class="qt-stat"><div class="qsv">${dur}</div><div class="qsl">Months</div></div>
@@ -1151,7 +1156,7 @@ function render(){
 
     if(SECTIONS.campSummary&&(locs.length||screens||dur)){
       h+=`<div class="doc-sec-lbl">Campaign Details</div>`;
-      if(locs.length) h+=`<div class="qt-locs" style="margin-bottom:8px;">${locs.map((l,i)=>l+(i<locs.length-1?'<span class="sep">•</span>':'')).join('')}</div>`;
+      if(locs.length) h+=`<div class="qt-locs" style="margin-bottom:8px;">${locs.map(l=>`<div class="loc-chip">${l}</div>`).join('')}</div>`;
       h+=`<div class="qt-stats" style="margin-bottom:12px;">
         <div class="qt-stat"><div class="qsv">${screens}</div><div class="qsl">Screens</div></div>
         <div class="qt-stat"><div class="qsv">${dur}</div><div class="qsl">Months</div></div>
@@ -1279,6 +1284,28 @@ function render(){
   </div>`;
 
   document.getElementById('docPreview').innerHTML=h;
+  updatePageUsage();
+}
+
+// ══════════════════════════════════════
+// A4 PAGE USAGE INDICATOR
+// ══════════════════════════════════════
+const A4_HEIGHT_PX = 1123; // 297mm at 96dpi, matches .a4 width:794px (210mm)
+function updatePageUsage(){
+  const el = document.getElementById('pageUsage');
+  if(!el) return;
+  const doc = document.getElementById('docPreview');
+  const usedHeight = doc.scrollHeight;
+  const pct = Math.round((usedHeight / A4_HEIGHT_PX) * 100);
+  el.classList.remove('warn','ok');
+  if(pct > 100){
+    const pages = Math.ceil(usedHeight / A4_HEIGHT_PX);
+    el.textContent = `Warning: this document will print on ${pages} pages (${pct}% of one A4 page)`;
+    el.classList.add('warn');
+  } else {
+    el.textContent = `A4 Page Usage: ${pct}%`;
+    el.classList.add(pct>90?'warn':'ok');
+  }
 }
 
 // ══════════════════════════════════════
